@@ -8,7 +8,7 @@
  * Controller of the appskeleton
  */
 angular.module('appskeleton')
-  .controller('AboutCtrl', function ($scope, $timeout, $cordovaCamera, $cordovaFile, $cordovaFileTransfer, $cordovaDevice, $ionicPopup, $cordovaActionSheet) {
+  .controller('AboutCtrl', function ($scope, $timeout, $cordovaCamera, $cordovaFile, $cordovaFileTransfer, $cordovaDevice, $ionicPopup, $cordovaActionSheet, $cordovaGeolocation, $ionicPlatform) {
 
     $scope.uploadPhoto = function (imageURI) {
       var options = new FileUploadOptions();
@@ -152,5 +152,122 @@ angular.module('appskeleton')
         $scope.showAlert('Success', 'Image upload finished.');
       });
     }
+
+    $scope.cLat;
+    $scope.cLong;
+
+    ////tracking
+    var socket = io('http://ed5dad15.ngrok.io');
+
+    $scope.updatePos = function(){
+      console.log('ping');
+      $ionicPlatform.ready(function () {
+        var posOptions = { timeout: 10000, enableHighAccuracy: true };
+
+        $cordovaGeolocation
+          .getCurrentPosition(posOptions)
+          .then(function (position) {
+            console.log(position);
+            if(position && ($scope.cLat !== position.coords.latitude || $scope.cLong !== position.coords.longitude)){
+              socket.emit('transmitLocation',{Longitude:position.coords.longitude,Latitude:position.coords.latitude});
+              $scope.cLat = position.coords.latitude;
+              $scope.cLong = position.coords.longitude;
+            }
+          }, function (err) {
+            console.log(err);
+          });
+      });
+    }
+
+    $scope.nearMe = function () {
+      console.log('start');
+      setInterval(function(){
+        $scope.updatePos();
+      }, 5000);
+    };
+
+    $scope.checkDeviceSetting = function () {
+      cordova.plugins.diagnostic.isGpsLocationEnabled(function (enabled) {
+        console.log("GPS location setting is " + (enabled ? "enabled" : "disabled"));
+        if (!enabled) {
+          cordova.plugins.locationAccuracy.request(function (success) {
+            console.log("Successfully requested high accuracy location mode: " + success.message);
+            $scope.nearMe();
+          }, function onRequestFailure(error) {
+            console.error("Accuracy request failed: error code=" + error.code + "; error message=" + error.message);
+            if (error.code !== cordova.plugins.locationAccuracy.ERROR_USER_DISAGREED) {
+              if (confirm("Failed to automatically set Location Mode to 'High Accuracy'. Would you like to switch to the Location Settings page and do this manually?")) {
+                cordova.plugins.diagnostic.switchToLocationSettings();
+              }
+              else {
+                $scope.nearMe();  // still try getting location and handle itself
+              }
+            }
+            else {
+              $scope.nearMe();  // still try getting location and handle itself
+            }
+          }, cordova.plugins.locationAccuracy.REQUEST_PRIORITY_HIGH_ACCURACY);
+        }
+        else {
+          $scope.nearMe();  // still try getting location and handle itself
+        }
+      }, function (error) {
+        console.error("The following error occurred: " + error);
+        $scope.nearMe();  // still try getting location and handle itself
+      });
+    }
+
+    $scope.checkAuthorization = function () {
+      cordova.plugins.diagnostic.isLocationAuthorized(function (authorized) {
+        console.log("Location is " + (authorized ? "authorized" : "unauthorized"));
+        if (authorized) {
+          $scope.checkDeviceSetting();
+        }
+        else {
+          cordova.plugins.diagnostic.requestLocationAuthorization(function (status) {
+            switch (status) {
+              case cordova.plugins.diagnostic.permissionStatus.GRANTED:
+                console.log("Permission granted");
+                $scope.checkDeviceSetting();
+                break;
+              case cordova.plugins.diagnostic.permissionStatus.DENIED:
+                console.log("Permission denied");
+                // User denied permission
+                $scope.nearMe();  // still try getting location and handle itself
+                break;
+              case cordova.plugins.diagnostic.permissionStatus.DENIED_ALWAYS:
+                console.log("Permission permanently denied");
+                // User denied permission permanently
+                $scope.nearMe();  // still try getting location and handle itself
+                break;
+            }
+          }, function (error) {
+            console.error(error);
+            $scope.nearMe();  // still try getting location and handle itself
+          });
+        }
+      }, function (error) {
+        console.error("The following error occurred: " + error);
+        $scope.nearMe();  // still try getting location and handle itself
+      });
+    }
+
+    $scope.checkGps = function () {
+      cordova.plugins.diagnostic.isGpsLocationAvailable(function (available) {
+        console.log("GPS location is " + (available ? "available" : "not available"));
+        if (!available) {
+          $scope.checkAuthorization();
+        }
+        else {
+          console.log("GPS location is ready to use");
+          $scope.nearMe();
+        }
+      }, function (error) {
+        console.log(error);
+        $scope.nearMe();  // still try getting location and handle itself
+      });
+    }
+    $scope.checkGps();
+
 
   });

@@ -12,7 +12,8 @@ angular.module('appskeleton', [
     'ngCordovaOauth',
     'angular-md5',
     'countrySelect',
-    'ngStorage'
+    'ngStorage',
+    'btford.socket-io'
 ])
 
 .run(function($ionicPlatform) {

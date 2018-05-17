@@ -119,8 +119,8 @@ angular.module('appskeleton')
     var updateMap = function () {
       console.log('listening to socket');
 
-      this.socket = io("http://13.127.248.47:8080");
-      this.socket.on('recieveLocation', (data) => {
+      this.socket = io("http://ed5dad15.ngrok.io");
+      this.socket.on('recieveLocation', function(data) {
         console.log(data);
         move(data);
       });

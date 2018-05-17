@@ -8,6 +8,8 @@
     "angular-md5": "^0.1.10",
     "ng-country-select": "^0.1.4",
     "ngstorage": "^0.3.11",
-    "ng-cordova-oauth": "^0.3.0"
+    "ng-cordova-oauth": "^0.3.0",
+    "angular-socket-io": "^0.7.0",
+    "socket.io-client": "sio-client#^1.4.8"
   }
 }
