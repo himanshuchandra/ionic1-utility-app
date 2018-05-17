@@ -7,12 +7,12 @@
 // 'starter.controllers' is found in controllers.js
 angular.module('appskeleton', [
     'ionic',
+    'uiGmapgoogle-maps',
     'ngCordova',
     'ngCordovaOauth',
     'angular-md5',
     'countrySelect',
-    'ngStorage',
-    'ngGoogleMaps'
+    'ngStorage'
 ])
 
 .run(function($ionicPlatform) {
